@@ -400,12 +400,6 @@ jobs:
           USE_TOOLCHAIN=clang-${{ vars.LLVM_VER }} \
             ./avbuild.sh $TARGET_OS "arm64 x86 x64"
 
-      - name: Rename output folder to sdk-*
-        # 将实际产物目录前缀加上 "sdk-"
-        run: |
-          mv ${TARGET_OS}-${COMPILER}${CONFIG_SUFFIX} \
-             sdk-${TARGET_OS}-${COMPILER}${CONFIG_SUFFIX}
-
       - name: Make SDK (pack & compress)
         run: ./tools/ci-after-build.sh
 
