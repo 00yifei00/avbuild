@@ -353,6 +353,13 @@ jobs:
     env:
       TARGET_OS: ${{ matrix.target }}
       COMPILER: clang
+      USER_OPT: >-
+        --disable-everything
+        --enable-demuxer=mov,mkv
+        --enable-parser=aac,h264
+        --enable-decoder=aac,h264
+        --enable-muxer=ffmetadata
+        --enable-filter=subtitles
       VCDIR: '/tmp/msvcrt-dev'
       WINDOWSSDKDIR: '/tmp/winsdk'
       PKG_CONFIG_PATH_MFX: '/tmp/dep/ClangCL/lib/pkgconfig'
