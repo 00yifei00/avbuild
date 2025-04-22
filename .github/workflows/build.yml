@@ -348,10 +348,14 @@ jobs:
         path: ffmpeg-*.tar.xz
 
   Windows_clang:
+    name: Build for Windows (Clang)
     runs-on: ubuntu-latest
     env:
+      # 新增 FF_VERSION 以保证 ci-after-build 中 SUFFIX 正确
+      FF_VERSION: ${{ vars.FF_VERSION }}
       TARGET_OS: ${{ matrix.target }}
       COMPILER: clang
+      # 按需精简模块，可保留音频/字幕提取
       USER_OPT: >-
         --disable-everything
         --enable-demuxer=mov,mkv
@@ -359,31 +363,57 @@ jobs:
         --enable-decoder=aac,h264
         --enable-muxer=ffmetadata
         --enable-filter=subtitles
+      CONFIG_SUFFIX: -${{ matrix.config }}
       VCDIR: '/tmp/msvcrt-dev'
       WINDOWSSDKDIR: '/tmp/winsdk'
       PKG_CONFIG_PATH_MFX: '/tmp/dep/ClangCL/lib/pkgconfig'
       AMF_DIR: "/tmp/dep/include"
-      CONFIG_SUFFIX: -${{ matrix.config }}
     strategy:
       fail-fast: false
       matrix:
         config: [lite]
         target: [windows-desktop]
     steps:
-    - uses: actions/checkout@v4
-    - name: Create Build Environment
-      run: ./tools/ci-before-build.sh
-    - name: Configure and Build
-      run: |
-        export FFSRC=$PWD/ffmpeg-${FF_VERSION}
-        USE_TOOLCHAIN=clang-${LLVM_VER} ./avbuild.sh windows-desktop "x86 x64 arm64"
-    - name: Make SDK
-      run: ./tools/ci-after-build.sh
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: ffmpeg-${{ env.FF_VERSION }}-windows-desktop-${{ matrix.config }}
-        path: ffmpeg-*.tar.xz  :contentReference[oaicite:12]{index=12}
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+      - name: Restore sysroot cache
+        id: sysroot-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            /tmp/winsdk
+            /tmp/msvcrt-dev
+          key: sysroot-${{ env.TARGET_OS }}${{ vars.WINSDKVER }}-vc${{ vars.VCVER }}
+
+      - name: Create Build Environment
+        run: |
+          sudo apt remove -y libc++1-14 libc++abi1-14 libunwind-14 python3-lldb-14
+          ./tools/ci-before-build.sh
+
+      - name: Configure and Build
+        run: |
+          export FFSRC=$PWD/ffmpeg-${FF_VERSION}
+          export WindowsSdkDir=${WINDOWSSDKDIR}
+          export WindowsSDKVersion=$(cat ${WINDOWSSDKDIR}/.version)
+          USE_TOOLCHAIN=clang-${{ vars.LLVM_VER }} \
+            ./avbuild.sh $TARGET_OS "arm64 x86 x64"
+
+      - name: Rename output folder to sdk-*
+        # 将实际产物目录前缀加上 "sdk-"
+        run: |
+          mv ${TARGET_OS}-${COMPILER}${CONFIG_SUFFIX} \
+             sdk-${TARGET_OS}-${COMPILER}${CONFIG_SUFFIX}
+
+      - name: Make SDK (pack & compress)
+        run: ./tools/ci-after-build.sh
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ffmpeg-${{ env.FF_VERSION }}-${{ env.TARGET_OS }}-${{ matrix.config }}
+          path: ffmpeg-*.tar.xz
 
 
   VCRT120_clang:
