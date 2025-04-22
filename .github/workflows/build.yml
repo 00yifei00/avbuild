@@ -371,39 +371,19 @@ jobs:
         target: [windows-desktop]
     steps:
     - uses: actions/checkout@v4
-      with:
-        submodules: 'recursive'
-    - name: 'Restore sysroot cache'
-      id: sysroot-cache
-      uses: actions/cache@v4
-      with:
-        path: |
-          /tmp/winsdk
-          /tmp/msvcrt-dev
-        key: sysroot-${{ env.TARGET_OS }}${{ vars.WINSDKVER }}-vc${{ vars.VCVER }}
     - name: Create Build Environment
-      shell: bash
-      env:
-        SYSROOT_CACHE_HIT: ${{ steps.sysroot-cache.outputs.cache-hit }}
-      run: |
-        sudo apt remove -y libc++1-14 libc++abi1-14 libunwind-14 python3-lldb-14 # conflict with latest llvm
-        ./tools/ci-before-build.sh
+      run: ./tools/ci-before-build.sh
     - name: Configure and Build
-      shell: bash
       run: |
         export FFSRC=$PWD/ffmpeg-${FF_VERSION}
-        export WindowsSdkDir=${WINDOWSSDKDIR}
-        export WindowsSDKVersion=$(cat ${WINDOWSSDKDIR}/.version)
-        export USER_OPT="--enable-libshaderc"
-        USE_TOOLCHAIN=clang-${LLVM_VER:-$LLVM_VER_DEFAULT} ./avbuild.sh $TARGET_OS "arm64 x86 x64"
+        USE_TOOLCHAIN=clang-${LLVM_VER} ./avbuild.sh windows-desktop "x86 x64 arm64"
     - name: Make SDK
-      shell: bash
       run: ./tools/ci-after-build.sh
-    - name: Archieve SDK
+    - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ffmpeg-${{ env.FF_VERSION }}-${{ env.TARGET_OS }}-${{ matrix.config }}
-        path: ffmpeg-*.tar.xz
+        name: ffmpeg-${{ env.FF_VERSION }}-windows-desktop-${{ matrix.config }}
+        path: ffmpeg-*.tar.xz  :contentReference[oaicite:12]{index=12}
 
 
   VCRT120_clang:
