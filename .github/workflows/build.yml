@@ -347,7 +347,6 @@ jobs:
         name: ffmpeg-${{ env.FF_VERSION }}-${{ env.TARGET_OS }}-lavfilters
         path: ffmpeg-*.tar.xz
 
-
   Windows_clang:
     runs-on: ubuntu-latest
     env:
